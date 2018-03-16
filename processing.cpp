@@ -11,7 +11,6 @@ namespace Gdiplus
 #include "ScreenCap.h"
 #include "ImageProcessing.h"
 #include "InputManipulation.h"
-#include <iostream>
 #include <wchar.h>
 #include <stdio.h>
 
@@ -50,7 +49,8 @@ void Method4(const FunctionCallbackInfo<Value>& args)
   original_image = Gdiplus::Bitmap::FromFile(filenamew.c_str());;
   bool result = false;
   if(original_image != nullptr)
-    result = true;
+    if(original_image->GetHeight() != 0 && original_image->GetWidth() != 0)
+      result = true;
   args.GetReturnValue().Set(Boolean::New(args.GetIsolate(), result));
 }
 
@@ -91,20 +91,47 @@ void Method7(const FunctionCallbackInfo<Value>& args)
 
 void Method9(const FunctionCallbackInfo<Value>& args)
 {
+  //const league coordinates - modify to allow more flexability
   const int xpos = 550;
   const int ypos = 527;
   float result = 1;
   v8::String::Utf8Value str(args[0]);
   std::string process_name(*str);
   auto handle = QTools::ProcessWrapper::retrieveHWND(process_name);
-  Gdiplus::Bitmap* screenshot = nullptr;
-  QTools::ScreenCap::takeSnapshot(&screenshot,  handle);
-  // fixed selection
-  QTools::ImageProcessing::cropBitmap(&screenshot, xpos, ypos, original_image->GetWidth(), original_image->GetHeight());
-  result = QTools::ImageProcessing::compareMemoryImg(original_image, screenshot);
-  delete screenshot;
-  CloseHandle(handle);
+  if(handle != 0x0)
+  {
+    Gdiplus::Bitmap* screenshot = nullptr;
+    int outcome = QTools::ScreenCap::takeSnapshot(&screenshot,  handle);
+    // fixed selection
+    if(screenshot != nullptr && outcome == 0)
+    {
+      QTools::ImageProcessing::cropBitmap(&screenshot, xpos, ypos, original_image->GetWidth(), original_image->GetHeight());
+      result = QTools::ImageProcessing::compareMemoryImg(original_image, screenshot);
+    }
+    delete screenshot;
+    CloseHandle(handle);
+  }
   args.GetReturnValue().Set(Number::New(args.GetIsolate(), result));
+}
+
+void Method10(const FunctionCallbackInfo<Value>& args)
+{
+  bool result = false;
+  v8::String::Utf8Value str(args[0]);
+  std::string process_name(*str);
+  auto handle = QTools::ProcessWrapper::retrieveHWND(process_name);
+  try
+  {
+    v8::Int32* x = v8::Int32::Cast(*args[1]);
+    v8::Int32* y = v8::Int32::Cast(*args[2]);
+    if(handle != 0x0)
+      result = QTools::InputManipulation::ClickHere(x->Value(), y->Value(), handle);
+  }catch(...)
+  {
+
+  }
+  CloseHandle(handle);
+  args.GetReturnValue().Set(Boolean::New(args.GetIsolate(), result));
 }
 
 void init(Local<Object> exports) {
@@ -113,6 +140,7 @@ void init(Local<Object> exports) {
   NODE_SET_METHOD(exports, "startGDIPlus", Method5);
   NODE_SET_METHOD(exports, "shutdownGDIPlus", Method6);
   NODE_SET_METHOD(exports, "screenshotAndCompare", Method9);
+  NODE_SET_METHOD(exports, "clickProcess", Method10);
 }
 
 NODE_MODULE(NODE_GYP_MODULE_NAME, init)
