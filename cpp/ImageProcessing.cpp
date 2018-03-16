@@ -54,10 +54,13 @@ namespace QTools{
 		}
 
 		void cropBitmap(Gdiplus::Bitmap** img, int x, int y, int width, int height) {
-			Gdiplus::Bitmap* temp = (*img)->Clone(x, y, width, height, PixelFormat32bppARGB);
-			// delete bitmap before changing location
-			delete *img;
-			*img = temp;
+			if((*img)->GetHeight() >= height + y && (*img)->GetWidth() >= width + x)
+			{
+				Gdiplus::Bitmap* temp = (*img)->Clone(x, y, width, height, PixelFormat32bppARGB);
+				// delete bitmap before changing location
+				delete *img;
+				*img = temp;
+			}
 		}
 
 		void cropBitmap(Gdiplus::Bitmap** img, Gdiplus::Bitmap** cropped_img, int x, int y, int width, int height) {
