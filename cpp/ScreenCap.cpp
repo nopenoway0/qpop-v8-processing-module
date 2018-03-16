@@ -2,8 +2,6 @@
 #include <tchar.h>
 #include <psapi.h>
 
-//#include <img_processing.h>
-
 namespace QTools{
 	namespace ScreenCap{
 
@@ -32,7 +30,7 @@ namespace QTools{
 			RECT dimensions;
 			delete *m; // clear old image
 
-			if (GetWindowRect(main_window, &dimensions) == 0)
+			if (GetWindowRect(main_window, &dimensions) == 0 || dimensions.right - dimensions.left <= 0 || dimensions.bottom - dimensions.top <= 0)
 				return -2;
 
 			//***********************************************************************************************************************
@@ -45,10 +43,12 @@ namespace QTools{
 		    HBITMAP hbmp = CreateCompatibleBitmap(hdcScreen, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top);
 			if (hbmp == NULL)
 				return -4;
+
 		   	HDC pic = CreateCompatibleDC(hdcScreen);
 			if (pic == NULL)
 				return -5;
-			if (SelectObject(pic, hbmp) == NULL)
+
+			if (SelectObject(pic,hbmp) == NULL)
 				return -6;
 			if(!PrintWindow(main_window, pic, PW_CLIENTONLY)){
 				delete *m;
@@ -63,7 +63,9 @@ namespace QTools{
 			//***********************************************************************************************************************
 			//http://stackoverflow.com/questions/7292757/how-to-get-screenshot-of-a-window-as-bitmap-object-in-c : Davide Piras******
 			//***********************************************************************************************************************
-		    *m = Gdiplus::Bitmap::FromHBITMAP(hbmp, NULL);
+			
+		    *m = Gdiplus::Bitmap::FromHBITMAP(hbmp, NULL); // crash occurs here
+
 		    DeleteDC(pic);
 		    DeleteDC(hdcScreen);
 		    DeleteObject(hbmp);
